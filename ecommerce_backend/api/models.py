@@ -1,3 +1,6 @@
+# Checkpoint 2: Added Product, User, and Order models; integrated MySQL database.
+
+
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser, BaseUserManager, PermissionsMixin

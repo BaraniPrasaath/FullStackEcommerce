@@ -1,4 +1,4 @@
-# Checkpoint 3: Implemented secure authentication with salt & pepper password hashing.
+# Checkpoint 3: Implemented secure authentication with salt & pepper password hashing & # Checkpoint 4: Added product API endpoints.
 
 
 

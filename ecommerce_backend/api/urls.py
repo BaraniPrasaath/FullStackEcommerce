@@ -1,3 +1,6 @@
+# Checkpoint 4: Added product API endpoints.
+
+
 from django.urls import path
 from . import views
 from .views import RegisterView

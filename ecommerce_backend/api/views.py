@@ -1,3 +1,7 @@
+# Checkpoint 3: Implemented secure authentication with salt & pepper password hashing.
+
+
+
 from django.shortcuts import render
 
 # DRF View base + HTTP responses.

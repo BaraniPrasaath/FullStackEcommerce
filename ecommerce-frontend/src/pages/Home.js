@@ -1,5 +1,3 @@
-//Checkpoint 5: Implemented order processing and frontend integration for seamless shopping.
-
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";

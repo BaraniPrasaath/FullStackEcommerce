@@ -1,4 +1,4 @@
-//Checkpoint 1: Django backend initialized, project structure created.
+//Checkpoint 1: React frontend initialized successfully.
 
 import React, { useEffect, useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";

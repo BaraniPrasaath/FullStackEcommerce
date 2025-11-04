@@ -1,3 +1,5 @@
+//Checkpoint 5: Implemented Product viewing for All Categories.
+
 import React, { useEffect, useState } from "react";
 
 function AllProducts() {

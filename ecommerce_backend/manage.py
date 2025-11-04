@@ -1,5 +1,8 @@
 #!/usr/bin/env python
+# Checkpoint 1: Django backend initialized, project structure created.
+
 """Django's command-line utility for administrative tasks."""
+
 import os
 import sys
 

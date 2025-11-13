@@ -33,7 +33,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         # hash the password and generate salt using your custom utility
         hashed_password, salt = hash_password(password)
 
-        # ✅ create user (NO username field)
+        # create user (NO username field)
         user = User.objects.create(
             email=email,
             first_name=first_name,
@@ -41,7 +41,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=hashed_password,
         )
 
-        # ✅ manually store salt in your custom user table
+        #  manually store salt in your custom user table
         with connection.cursor() as cursor:
             cursor.execute("UPDATE api_customuser SET salt=%s WHERE id=%s", [salt, user.id])
 

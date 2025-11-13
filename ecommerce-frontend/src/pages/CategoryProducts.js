@@ -1,29 +1,52 @@
+
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
 const CategoryProducts = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // category ID from URL
   const [products, setProducts] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ✅ Read current page from URL, default to 1
+  const pageFromUrl = parseInt(searchParams.get("page")) || 1;
+  const [currentPage, setCurrentPage] = useState(pageFromUrl);
   const productsPerPage = 6;
 
+  // ✅ Update URL query when page changes
+  useEffect(() => {
+    setSearchParams({ page: currentPage });
+  }, [currentPage, setSearchParams]);
+
+  // ✅ Fetch products for this category
   useEffect(() => {
     fetch(`http://127.0.0.1:8000/api/products/?ct_id=${id}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.results && Array.isArray(data.results)) {
-          setProducts(data.results);
-        } else if (Array.isArray(data)) {
-          setProducts(data);
-        }
+        const results = data.results || data;
+        setProducts(Array.isArray(results) ? results : []);
       })
       .catch((err) => console.error("Error fetching products:", err));
   }, [id]);
 
-  // Pagination logic
+  // ✅ Pagination logic
+  const totalPages = Math.ceil(products.length / productsPerPage);
   const indexOfLast = currentPage * productsPerPage;
   const indexOfFirst = indexOfLast - productsPerPage;
   const currentProducts = products.slice(indexOfFirst, indexOfLast);
+
+  // ✅ Pagination handlers
+  const goToFirst = () => setCurrentPage(1);
+  const goToLast = () => setCurrentPage(totalPages);
+  const goToPrevious = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const goToNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
+  // ✅ Optional helper for consistent formatting
+  const formatPrice = (value) => {
+    const num = Number(value);
+    return isNaN(num) ? value : num.toFixed(2);
+  };
+
+
 
 return (
   <div className="container py-5 text-center">

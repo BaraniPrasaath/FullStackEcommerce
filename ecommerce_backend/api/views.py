@@ -1,7 +1,5 @@
 # Checkpoint 3: Implemented secure authentication with salt & pepper password hashing and also Elastic search implementation
 
-
-
 from django.shortcuts import render
 
 # DRF View base + HTTP responses.
@@ -12,6 +10,7 @@ from rest_framework import status
 # Built-in models
 #from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth import authenticate
 
 # Function and Class
@@ -44,7 +43,7 @@ from django.conf import settings
   
 User = get_user_model()
 
-
+# Works When the user sign-up
 class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -52,7 +51,28 @@ class RegisterView(APIView):
             serializer.save()  
             return Response({'message': 'User registered successfully!'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
+
+@csrf_exempt
+def verify_token(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST request required"}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        token = data.get("token")
+
+        if not token:
+            return JsonResponse({"valid": False, "error": "Missing token"}, status=400)
+
+        # Decode and verify token
+        access_token = AccessToken(token)
+        user_id = access_token["user_id"]
+
+        return JsonResponse({"valid": True, "user_id": user_id})
+    except Exception as e:
+        return JsonResponse({"valid": False, "error": str(e)}, status=400)
+
 
 # Works When the user sign-in
 @csrf_exempt
@@ -77,12 +97,12 @@ def login_user(request):
         if not verify_password(password, user.password, user.salt):
             return JsonResponse({"error": "Invalid credentials"}, status=400)
 
-        # generate JWT tokens
+        # generating JWT tokens
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
-        # set 7-day expiry for access token (default is shorter)
+        # 7-day expiry for access token 
         refresh.set_exp(lifetime=timedelta(days=7))
         refresh.access_token.set_exp(lifetime=timedelta(days=7))
 
@@ -253,9 +273,13 @@ def search_products(request):
                   type="best_fields",
                   fields=["pdt_name^3", "ct.ct_name^2", "ct.ct_description"],
                   fuzziness="AUTO",
-                  prefix_length=1,
+                  prefix_length=0,
+                  max_expansions=50,
                   operator="or"),
-                Q("match_phrase", **{"pdt_name": q})
+                # Q("match_phrase", **{"pdt_name": q})
+                Q("fuzzy", pdt_name={"value": q, "fuzziness": "AUTO", "boost": 1.5}),
+                Q("wildcard", pdt_name={"value": f"*{q.lower()}*", "boost": 0.5}),
+                Q("match_phrase", pdt_name={"query": q, "boost": 2}),
             ],
             minimum_should_match=1
         )
@@ -273,7 +297,7 @@ def search_products(request):
         if not results.hits:
             raise Exception("No results from Elasticsearch")
 
-        # ✅ format ES results
+        # format ES results
         data = []
         for hit in results:
             ct = getattr(hit, "ct", None)
@@ -316,265 +340,3 @@ def search_products(request):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# @api_view(['GET'])
-# def search_products(request):
-#     import re
-#     from elasticsearch_dsl import Q
-
-#     q = request.GET.get('q', '').strip()
-#     if not q:
-#         return Response([], status=status.HTTP_200_OK)
-
-#     page = int(request.GET.get('page', 1))
-#     size = int(request.GET.get('size', 20))
-#     start = (page - 1) * size
-
-#     # --- 🧩 Extract numeric filter ---
-#     q_lower = q.lower()
-#     price_filter = None
-#     match = re.search(r'(\d{2,6})', q_lower)
-
-#     if match:
-#         amount = float(match.group(1))
-#         if any(word in q_lower for word in ["under", "below", "less"]):
-#             price_filter = ("lte", amount)
-#         elif any(word in q_lower for word in ["over", "above", "greater"]):
-#             price_filter = ("gte", amount)
-
-#         # Clean out those words for better text relevance
-#         q = re.sub(r'\b(under|below|less|over|above|greater|than|\d{2,6})\b', '', q_lower).strip()
-
-#     # --- Base search ---
-#     s = ProductDocument.search()
-
-#     text_query = Q(
-#         "multi_match",
-#         query=q,
-#         type="best_fields",
-#         fields=[
-#             "pdt_name^3",
-#             "ct.ct_name^2",
-#             "ct.ct_description"
-#         ],
-#         fuzziness="AUTO",
-#         prefix_length=1,
-#         operator="or"
-#     )
-
-#     s = s.query(text_query)
-
-#     # --- 🧩 Safe price filter ---
-#     if price_filter:
-#         op, val = price_filter
-#         try:
-#             s = s.filter("range", **{"pdt_dis_price": {op: val}})
-#         except Exception as e:
-#             # Log and continue gracefully
-#             print("Price filter error:", e)
-
-#     # Pagination
-#     s = s[start:start + size]
-
-#     try:
-#         results = s.execute()
-#     except Exception as e:
-#         # Return clean JSON instead of crashing
-#         return Response({"error": f"Elasticsearch query failed: {str(e)}"}, status=500)
-
-#     # --- Format response ---
-#     data = []
-#     for hit in results:
-#         ct = getattr(hit, "ct", None)
-
-#     # safely extract category name from both dict or AttrDict
-#         if ct:
-#             try:
-#                 category_name = ct.get("ct_name") if hasattr(ct, "get") else getattr(ct, "ct_name", None)
-#             except Exception:
-#                 category_name = None
-#         else:
-#             category_name = None
-
-#         data.append({
-#             "pdt_id": getattr(hit, "pdt_id", None),
-#             "pdt_name": getattr(hit, "pdt_name", None),
-#             "pdt_mrp": getattr(hit, "pdt_mrp", None),
-#             "pdt_dis_price": getattr(hit, "pdt_dis_price", None),
-#             "pdt_qty": getattr(hit, "pdt_qty", None),
-#             "category": category_name,
-#             "_score": getattr(hit.meta, "score", None),
-#         })
-
-#     return Response(data, status=200)
-
-
-
-
-
-
-
-
-
-
-
-# old previous 
-# @api_view(['GET'])
-# def search_products(request):
-#     q = request.GET.get('q', '').strip()
-#     if not q:
-#         return Response([], status=status.HTTP_200_OK)
-
-#     page = int(request.GET.get('page', 1))
-#     size = int(request.GET.get('size', 20))
-#     start = (page - 1) * size
-
-#     s = ProductDocument.search()
-
-#     # ✅ Use a flexible fuzzy query (for typos and partial matches)
-#     s = s.query(
-#         "multi_match",
-#         query=q,
-#         type="best_fields",
-#         fields=[
-#             "pdt_name^3",              # prioritize product name
-#             "ct.ct_name^2",            # then category name
-#             "ct.ct_description"        # then category description
-#         ],
-#         fuzziness="AUTO",
-#         prefix_length=1,
-#         operator="or"
-#     )
-
-#     s = s[start:start + size]
-
-#     try:
-#         results = s.execute()
-#     except Exception as e:
-#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#     data = []
-#     for hit in results:
-#         # ✅ Safe extraction — handle both dict and AttrDict from Elasticsearch
-#         ct_data = None
-#         if hasattr(hit, "ct") and hit.ct:
-#             # sometimes hit.ct is AttrDict instead of dict
-#             if isinstance(hit.ct, dict):
-#                 ct_data = hit.ct.get("ct_name")
-#             elif hasattr(hit.ct, "ct_name"):
-#                 ct_data = hit.ct.ct_name
-
-#         data.append({
-#             "pdt_id": getattr(hit, "pdt_id", None),
-#             "pdt_name": getattr(hit, "pdt_name", None),
-#             "pdt_mrp": getattr(hit, "pdt_mrp", None),
-#             "pdt_dis_price": getattr(hit, "pdt_dis_price", None),
-#             "pdt_qty": getattr(hit, "pdt_qty", None),
-#             "category": ct_data,
-#             "_score": getattr(hit.meta, "score", None),
-#         })
-
-#     return Response(data, status=status.HTTP_200_OK)
-
-
-# old
-# Add this function
-# @api_view(['GET'])
-# def search_products(request):
-#     """
-#     Search products using Elasticsearch.
-#     Query params:
-#       - q: search string (required)
-#       - page: page number (default 1)
-#       - size: number of items per page (default 20)
-#     """
-#     q = request.GET.get('q', '').strip()
-#     if not q:
-#         return Response([], status=status.HTTP_200_OK)
-
-#     # Pagination
-#     page = int(request.GET.get('page', 1))
-#     size = int(request.GET.get('size', 20))
-#     start = (page - 1) * size
-
-#     # Build search query
-#     s = ProductDocument.search().query(
-#         "multi_match",
-#         query=q,
-#         type="cross_fields",
-#         fields=["pdt_name", "ct.ct_name"],
-#         operator="and"
-#     )[start:start + size]
-
-#     try:
-#         results = s.execute()
-#     except Exception as e:
-#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#     data = []
-#     for hit in results:
-#         ct_name = None
-#         if hasattr(hit, "ct") and isinstance(hit.ct, dict):
-#             ct_name = hit.ct.get("ct_name")
-#         elif hasattr(hit, "ct") and hasattr(hit.ct, "ct_name"):
-#             ct_name = hit.ct.ct_name
-
-#         data.append({
-#             "pdt_id": getattr(hit, "pdt_id", None),
-#             "pdt_name": getattr(hit, "pdt_name", None),
-#             "pdt_mrp": getattr(hit, "pdt_mrp", None),
-#             "pdt_dis_price": getattr(hit, "pdt_dis_price", None),
-#             "pdt_qty": getattr(hit, "pdt_qty", None),
-#             "category": ct_name,
-#             "_score": getattr(hit.meta, "score", None),
-#         })
-
-#     return Response(data, status=status.HTTP_200_OK)
-
-
-# @api_view(['GET'])
-# def search_products(request):
-#     query = request.GET.get('q', '')
-#     if not query:
-#         return Response({'error': 'Query parameter "q" is required'}, status=status.HTTP_400_BAD_REQUEST)
-    
-#     # Perform a simple text search
-#     s = ProductDocument.search().query("multi_match", query=query, fields=['pdt_name', 'ct.ct_name'])
-#     results = s.execute()
-
-#     data = []
-#     for hit in results:
-#         data.append({
-#             'pdt_id': hit.pdt_id,
-#             'pdt_name': hit.pdt_name,
-#             'pdt_mrp': hit.pdt_mrp,
-#             'pdt_dis_price': hit.pdt_dis_price,
-#             'pdt_qty': hit.pdt_qty,
-#             'category': hit.ct.ct_name if hasattr(hit.ct, 'ct_name') else None
-#         })
-
-#     return Response(data)

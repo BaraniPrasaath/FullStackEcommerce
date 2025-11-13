@@ -13,6 +13,8 @@ urlpatterns = [
     #path('register/', views.register_user, name='register'),
     path('login/', views.login_user, name='login'),
 
+    path('verify_token/', views.verify_token, name='verify_token'),
+
     path('categories/', views.CategoryListAPIView.as_view(), name='category-list'),
     path('categories/<int:id>/', views.CategoryDetailAPIView.as_view(), name='category-detail'),
     path('products/', views.ProductListAPIView.as_view(), name='product-list'),        # GET /api/products/?ct=1

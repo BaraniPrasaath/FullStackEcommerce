@@ -1,1 +1,76 @@
+<<<<<<< HEAD
 .env
+=======
+# ===================================
+# Python / Django
+# ===================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.log
+db.sqlite3
+.env
+.env.*
+venv/
+.env.local
+.env.development
+.env.production
+.DS_Store
+
+# Django specific
+staticfiles/
+media/
+*.mo
+*.pot
+
+# ===================================
+# Node / React
+# ===================================
+# dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# build output
+build/
+dist/
+coverage/
+*.tsbuildinfo
+
+# dotenv files (frontend)
+frontend/.env
+frontend/.env.*
+
+# ===================================
+# IDE / Editor
+# ===================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ===================================
+# OS-specific
+# ===================================
+.DS_Store
+Thumbs.db
+
+# ===================================
+# MySQL / Database dumps
+# ===================================
+*.sql
+*.sql.gz
+*.db
+*.dump
+
+# ===================================
+# Miscellaneous
+# ===================================
+*.bak
+*.swp
+*.tmp
+>>>>>>> 041668d (Final Commit)

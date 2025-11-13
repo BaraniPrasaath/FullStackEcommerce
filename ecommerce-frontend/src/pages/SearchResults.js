@@ -76,18 +76,16 @@ function SearchResults() {
                 }}
               >
                 <div className="card-body">
-                  <h5 className="card-title text-primary fw-bold">
-                    {p.pdt_name}
-                  </h5>
-                  <p className="card-text text-muted small mb-1">
-                    <strong>MRP:</strong> ₹{formatPrice(p.pdt_mrp)}
-                  </p>
-                  <p className="card-text text-muted small mb-1">
-                    <strong>Discount:</strong> ₹{formatPrice(p.pdt_dis_price)}
-                  </p>
-                  <p className="card-text text-muted small mb-3">
-                    <strong>Qty:</strong> {p.pdt_qty}
-                  </p>
+                  <h5 className="card-title text-primary fw-bold">{p.pdt_name}</h5>
+                 <p className="card-text text-muted small mb-1">
+                  <strong>MRP:</strong> ₹{p.pdt_mrp}
+                 </p>
+                <p className="card-text text-success small mb-1">
+                 <strong>Discount:</strong> ₹{p.pdt_dis_price}
+                </p>
+                <p className="card-text text-secondary small">
+                  <strong>Qty:</strong> {p.pdt_qty}
+                </p>
                   <Link
                     to={`/product/${p.pdt_id}`}
                     className="btn btn-sm btn-outline-primary"
